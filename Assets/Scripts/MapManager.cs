@@ -1,22 +1,24 @@
 using UnityEngine;
+using System.Collections;
 
 // Gerencia a geração procedural do mapa de expedição.
-// Gera árvores, arbustos, pedras e inimigos em posições aleatórias
-// respeitando distâncias mínimas entre objetos.
 public class MapManager : MonoBehaviour
 {
     [Header("Referências")]
-    public GameObject mapParent;   // Objeto pai de todos os elementos gerados
-    public Transform player;       // Transform do player
-    public Transform baseSpawn;    // Ponto de spawn da base (acampamento)
-    public Transform mapSpawn;     // Ponto de spawn central do mapa de expedição
+    public GameObject mapParent;
+    public Transform player;
+    public Transform baseSpawn;
+    public Transform mapSpawn;
+    public CameraFollow cameraFollow;
 
     [Header("Mapa")]
-    public float mapSize = 25f;    // Metade do tamanho total do mapa (ex: 25 = área de 50x50)
+    public float mapSize = 50f;
+    public float playerSafeZone = 8f;
+    public float borderTreeDepth = 6f;
 
     [Header("Árvores")]
     public GameObject[] treePrefabs;
-    public int treeCount = 20;
+    public int treeCount = 60;
     public float treeMinScale = 0.8f;
     public float treeMaxScale = 1.3f;
     public float treeMinDistance = 2.5f;
@@ -24,7 +26,7 @@ public class MapManager : MonoBehaviour
 
     [Header("Arbustos")]
     public GameObject[] bushPrefabs;
-    public int bushCount = 15;
+    public int bushCount = 30;
     public float bushMinScale = 0.7f;
     public float bushMaxScale = 1.2f;
     public float bushMinDistance = 1.5f;
@@ -32,7 +34,7 @@ public class MapManager : MonoBehaviour
 
     [Header("Pedras")]
     public GameObject[] rockPrefabs;
-    public int rockCount = 10;
+    public int rockCount = 20;
     public float rockMinScale = 0.8f;
     public float rockMaxScale = 1.5f;
     public float rockMinDistance = 2f;
@@ -40,18 +42,23 @@ public class MapManager : MonoBehaviour
 
     [Header("Inimigos")]
     public GameObject[] enemyPrefabs;
-    public int enemyCount = 5;
+    public int enemyCount = 8;
     public float enemySpawnY = 0f;
+
+    [Header("Waves de inimigos")]
+    public int waveCount = 3;
+    public float timeBetweenWaves = 5f;
+    public float timeBetweenSpawns = 0.5f;
+
+    // Direção da última borda atravessada — definida pelo DungeonBorderTrigger
+    [HideInInspector] public Vector3 lastEntryDirection = Vector3.zero;
 
     void Update()
     {
-        // Detecta se o player caiu do mapa (y < -1) e regenera
-        // TODO: substituir por um trigger de borda mais robusto (DungeonBorderTrigger)
         if (player != null && player.position.y < -1f)
             GenerateNewMap();
     }
 
-    // Limpa o mapa atual e gera um novo completo
     public void GenerateNewMap()
     {
         ClearMap();
@@ -59,26 +66,47 @@ public class MapManager : MonoBehaviour
         SpawnCategory(treePrefabs, treeCount, treeMinScale, treeMaxScale, treeMinDistance, treeSpawnY);
         SpawnCategory(bushPrefabs, bushCount, bushMinScale, bushMaxScale, bushMinDistance, bushSpawnY);
         SpawnCategory(rockPrefabs, rockCount, rockMinScale, rockMaxScale, rockMinDistance, rockSpawnY);
-        SpawnEnemies();
+        SpawnBorderTrees();
 
-        TeleportPlayer(mapSpawn.position);
+        // Spawna o player no lado oposto da borda que ele atravessou
+        TeleportPlayer(GetOppositeSpawnPosition());
+
+        if (cameraFollow != null)
+            cameraFollow.SetMapBounds(mapSpawn.position, mapSize);
+
+        StartCoroutine(SpawnWaves());
     }
 
-    // Move o player para a base e limpa o mapa
     public void GoToBase()
     {
+        StopAllCoroutines();
         ClearMap();
         TeleportPlayer(baseSpawn.position);
+
+        if (cameraFollow != null)
+            cameraFollow.ClearMapBounds();
     }
 
-    // Destrói todos os filhos do mapParent
     void ClearMap()
     {
+        StopAllCoroutines();
         for (int i = mapParent.transform.childCount - 1; i >= 0; i--)
             Destroy(mapParent.transform.GetChild(i).gameObject);
     }
 
-    // Teleporta o player via Rigidbody para evitar conflito com a física
+    // Calcula posição de spawn oposta à borda que o player atravessou
+    // Ex: entrou pelo Norte → spawna no Sul
+    Vector3 GetOppositeSpawnPosition()
+    {
+        if (lastEntryDirection == Vector3.zero)
+            return mapSpawn.position; // Primeira expedição: spawna no centro
+
+        float spawnOffset = mapSize - borderTreeDepth - playerSafeZone;
+        Vector3 spawnPos = mapSpawn.position + (-lastEntryDirection.normalized) * spawnOffset;
+        spawnPos.y = mapSpawn.position.y;
+        return spawnPos;
+    }
+
     void TeleportPlayer(Vector3 destination)
     {
         Rigidbody rb = player.GetComponent<Rigidbody>();
@@ -96,24 +124,58 @@ public class MapManager : MonoBehaviour
         }
     }
 
-    // Gera uma categoria de objetos (árvores, arbustos, pedras) com verificação de distância
+    void SpawnBorderTrees()
+    {
+        if (treePrefabs == null || treePrefabs.Length == 0) return;
+
+        int borderCount = treeCount / 2;
+        int spawned = 0;
+        int maxAttempts = borderCount * 20;
+
+        for (int i = 0; i < maxAttempts && spawned < borderCount; i++)
+        {
+            float x = Random.Range(-mapSize, mapSize);
+            float z = Random.Range(-mapSize, mapSize);
+
+            bool inBorderX = Mathf.Abs(x) > mapSize - borderTreeDepth;
+            bool inBorderZ = Mathf.Abs(z) > mapSize - borderTreeDepth;
+            if (!inBorderX && !inBorderZ) continue;
+
+            Vector3 spawnPos = new Vector3(mapSpawn.position.x + x, treeSpawnY, mapSpawn.position.z + z);
+
+            bool tooClose = false;
+            foreach (Transform child in mapParent.transform)
+            {
+                if (Vector3.Distance(child.position, spawnPos) < 1.5f)
+                {
+                    tooClose = true;
+                    break;
+                }
+            }
+            if (tooClose) continue;
+
+            GameObject prefab = treePrefabs[Random.Range(0, treePrefabs.Length)];
+            GameObject obj = Instantiate(prefab, spawnPos, Quaternion.identity, mapParent.transform);
+            obj.transform.localScale = Vector3.one * Random.Range(treeMinScale, treeMaxScale);
+            spawned++;
+        }
+    }
+
     void SpawnCategory(GameObject[] prefabs, int count, float minScale, float maxScale, float minDist, float spawnY)
     {
         if (prefabs == null || prefabs.Length == 0 || count <= 0) return;
 
         int spawned = 0;
-        int maxAttempts = count * 20; // Evita loop infinito se o mapa estiver cheio
+        int maxAttempts = count * 20;
 
         for (int i = 0; i < maxAttempts && spawned < count; i++)
         {
-            float x = Random.Range(-mapSize, mapSize);
-            float z = Random.Range(-mapSize, mapSize);
+            float x = Random.Range(-(mapSize - borderTreeDepth), mapSize - borderTreeDepth);
+            float z = Random.Range(-(mapSize - borderTreeDepth), mapSize - borderTreeDepth);
             Vector3 spawnPos = new Vector3(mapSpawn.position.x + x, spawnY, mapSpawn.position.z + z);
 
-            // Mantém área livre ao redor do ponto de spawn do player
-            if (Vector3.Distance(spawnPos, mapSpawn.position) < 5f) continue;
+            if (Vector3.Distance(spawnPos, mapSpawn.position) < playerSafeZone) continue;
 
-            // Verifica sobreposição com objetos já gerados
             bool tooClose = false;
             foreach (Transform child in mapParent.transform)
             {
@@ -127,45 +189,48 @@ public class MapManager : MonoBehaviour
 
             GameObject prefab = prefabs[Random.Range(0, prefabs.Length)];
             GameObject obj = Instantiate(prefab, spawnPos, Quaternion.identity, mapParent.transform);
-            float scale = Random.Range(minScale, maxScale);
-            obj.transform.localScale = Vector3.one * scale;
+            obj.transform.localScale = Vector3.one * Random.Range(minScale, maxScale);
             spawned++;
         }
     }
 
-    // Gera inimigos distribuídos pelo mapa usando uma grade de células
-    // para garantir distribuição espacial mais uniforme
-    void SpawnEnemies()
+    IEnumerator SpawnWaves()
     {
-        if (enemyPrefabs == null || enemyPrefabs.Length == 0 || enemyCount <= 0) return;
+        int enemiesPerWave = Mathf.CeilToInt((float)enemyCount / waveCount);
 
-        // Divide o mapa em células e tenta spawnar um inimigo por célula
-        int cols = Mathf.CeilToInt(Mathf.Sqrt(enemyCount));
-        int rows = Mathf.CeilToInt((float)enemyCount / cols);
-        float cellW = (mapSize * 2f) / cols;
-        float cellH = (mapSize * 2f) / rows;
-
-        int spawned = 0;
-
-        for (int row = 0; row < rows && spawned < enemyCount; row++)
+        for (int wave = 0; wave < waveCount; wave++)
         {
-            for (int col = 0; col < cols && spawned < enemyCount; col++)
+            if (wave > 0)
+                yield return new WaitForSeconds(timeBetweenWaves);
+
+            int maxThisWave = (wave == waveCount - 1)
+                ? enemyCount - (wave * enemiesPerWave)
+                : enemiesPerWave;
+
+            for (int i = 0; i < maxThisWave; i++)
             {
-                // Posição aleatória dentro da célula
-                float x = Random.Range(-mapSize + col * cellW + 1f, -mapSize + (col + 1) * cellW - 1f);
-                float z = Random.Range(-mapSize + row * cellH + 1f, -mapSize + (row + 1) * cellH - 1f);
-                Vector3 pos = new Vector3(mapSpawn.position.x + x, enemySpawnY, mapSpawn.position.z + z);
-
-                // Zona segura ao redor do spawn do player
-                if (Vector3.Distance(pos, mapSpawn.position) < 15f) continue;
-
-                GameObject prefab = enemyPrefabs[Random.Range(0, enemyPrefabs.Length)];
-                Instantiate(prefab, pos, Quaternion.identity, mapParent.transform);
-                spawned++;
-                // CORREÇÃO: o continue anterior fazia com que spawns em zona segura
-                // simplesmente pulassem sem tentar outra posição na mesma célula.
-                // Agora o loop de rows/cols garante que todos os inimigos sejam gerados.
+                SpawnOneEnemy();
+                yield return new WaitForSeconds(timeBetweenSpawns);
             }
+        }
+    }
+
+    void SpawnOneEnemy()
+    {
+        if (enemyPrefabs == null || enemyPrefabs.Length == 0) return;
+
+        int maxAttempts = 30;
+        for (int i = 0; i < maxAttempts; i++)
+        {
+            float x = Random.Range(-(mapSize - borderTreeDepth), mapSize - borderTreeDepth);
+            float z = Random.Range(-(mapSize - borderTreeDepth), mapSize - borderTreeDepth);
+            Vector3 pos = new Vector3(mapSpawn.position.x + x, enemySpawnY, mapSpawn.position.z + z);
+
+            if (Vector3.Distance(pos, player.position) < playerSafeZone + 5f) continue;
+
+            GameObject prefab = enemyPrefabs[Random.Range(0, enemyPrefabs.Length)];
+            Instantiate(prefab, pos, Quaternion.identity, mapParent.transform);
+            return;
         }
     }
 }

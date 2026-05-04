@@ -1,33 +1,35 @@
 using UnityEngine;
 
 // Controla o orbe de luz que orbita ao redor do player seguindo o mouse.
-// O orbe ajusta sua altura com base no estado do player (normal, atirando, mirando).
-// Este script está no objeto do orbe (ShootPoint), não no player.
+// Modos:
+// - Normal: orbe segue o mouse ao redor do player em altura média
+// - Atirar (LMB): orbe desce para a posição de mira antes de atirar
+// - Ataque de Área (RMB): orbe sobe acima da cabeça do player
 public class DroneFollow : MonoBehaviour
 {
     [Header("Referências")]
-    public Transform player; // Transform do player
-    public Camera cam;       // Câmera principal
+    public Transform player;
+    public Camera cam;
 
     [Header("Órbita")]
-    public float orbitRadius = 1.5f;      // Distância do orbe ao player
-    public float followSpeed = 8f;         // Velocidade de interpolação do orbe
+    public float orbitRadius = 1.5f;
+    public float followSpeed = 8f;
 
     [Header("Alturas")]
-    public float height = 1.5f;           // Altura padrão (sem ação)
-    public float shootHeight = 0.5f;      // Altura ao atirar (botão esquerdo)
-    public float aimHeight = 0.2f;        // Altura ao mirar (botão direito)
+    public float height = 1.5f;         // Altura padrão
+    public float shootHeight = 0.5f;    // Altura ao atirar (LMB) — posição de mira
+    public float areaHeight = 2.5f;     // Altura ao carregar ataque de área (RMB) — acima da cabeça
 
     [Header("Correção de ângulo")]
     [Tooltip("Quando o mouse está acima deste % da tela, o orbe vai para o lado oposto")]
     public float screenThreshold = 0.6f;
 
-    // Definido externamente pelo PlayerShoot para indicar que está atirando
-    [HideInInspector] public bool isShooting = false;
+    // Estado atual do orbe — lido pelo PlayerShoot
+    public enum OrbMode { Normal, Shooting, AreaCharge }
+    [HideInInspector] public OrbMode currentMode = OrbMode.Normal;
 
     void Update()
     {
-        // Projeta o mouse no plano do chão na altura do player
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
         Plane groundPlane = new Plane(Vector3.up, player.position);
 
@@ -40,24 +42,32 @@ public class DroneFollow : MonoBehaviour
         if (dir == Vector3.zero) return;
         dir.Normalize();
 
-        // Inverte a direção quando o mouse está muito alto na tela
-        // para evitar que o orbe fique entre a câmera e o player
         float screenY = Input.mousePosition.y / Screen.height;
         if (screenY > screenThreshold)
             dir = -dir;
 
-        // Calcula posição alvo do orbe
         Vector3 targetPos = player.position + dir * orbitRadius;
 
-        // Determina altura com base na ação atual
+        // Define modo e altura conforme input
         if (Input.GetMouseButton(1))
-            targetPos.y = player.position.y + aimHeight;
-        else if (isShooting)
+        {
+            // RMB — modo de ataque de área: orbe sobe acima da cabeça
+            currentMode = OrbMode.AreaCharge;
+            targetPos = player.position; // Centraliza sobre o player
+            targetPos.y = player.position.y + areaHeight;
+        }
+        else if (Input.GetMouseButton(0))
+        {
+            // LMB — modo de tiro: orbe desce para posição de mira
+            currentMode = OrbMode.Shooting;
             targetPos.y = player.position.y + shootHeight;
+        }
         else
+        {
+            currentMode = OrbMode.Normal;
             targetPos.y = player.position.y + height;
+        }
 
-        // Move suavemente até a posição alvo
         transform.position = Vector3.Lerp(transform.position, targetPos, followSpeed * Time.deltaTime);
     }
 }

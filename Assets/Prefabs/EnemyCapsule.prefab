@@ -240,6 +240,13 @@ MonoBehaviour:
   stopDistance: 1
   damageAmount: 400
   damageCooldown: 1
+  dashSpeed: 12
+  dashDuration: 0.2
+  dashCooldown: 3
+  dashWindup: 0.5
+  dashTriggerDistance: 6
+  spriteRenderer: {fileID: 2123385902387360612}
+  dashWindupColor: {r: 1, g: 0.2, b: 0.2, a: 1}
   lightBallPrefab: {fileID: 4680787416294095633, guid: 95bc9e9fba291634fab2622d980fbecd, type: 3}
   anim: {fileID: 0}
 --- !u!54 &8913236117167677456

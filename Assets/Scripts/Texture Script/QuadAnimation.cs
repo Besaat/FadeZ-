@@ -1,26 +1,27 @@
 using UnityEngine;
 
-// Animador de sprite para o player usando troca de texturas em um quad (plano).
-// Simula animação 2D num ambiente 3D trocando a textura do material a cada frame.
-// As texturas de cada animação são definidas no Inspector.
+// Animador de sprite para o player usando Sprite[] em vez de Texture[].
+// ALTERAÇÃO: trocado de Texture[] para Sprite[] para permitir uso de spritesheets fatiadas.
+// O Renderer precisa usar um material com shader que suporte sprites (ex: Unlit/Transparent).
 public class QuadAnimator : MonoBehaviour
 {
     [Header("Referências")]
-    public Renderer rend; // Renderer do quad (plano com o sprite)
+    public SpriteRenderer spriteRenderer; // SpriteRenderer do quad do player
 
     [Header("Frames de animação")]
-    public Texture[] idleFrames;  // Frames da animação parada
-    public Texture[] walkFrames;  // Frames da animação andando
-    public Texture[] runFrames;   // Frames da animação correndo (reservado para futuro)
-    public Texture[] deathFrames; // Frames da animação de morte
+    public Sprite[] idleFrames;
+    public Sprite[] walkFrames;
+    public Sprite[] runFrames;
+    public Sprite[] hitFrames;
+    public Sprite[] deathFrames;
 
     [Header("Configuração")]
-    public float fps = 8f; // Frames por segundo da animação
+    public float fps = 8f;
 
-    // Callback chamado quando a animação de morte termina (usado pelo PlayerDeath)
+    // Callback chamado quando a animação de morte termina
     public System.Action onDeathComplete;
 
-    private Texture[] currentFrames;
+    private Sprite[] currentFrames;
     private int index;
     private float timer;
     private bool isDead = false;
@@ -28,6 +29,10 @@ public class QuadAnimator : MonoBehaviour
 
     void Start()
     {
+        // Busca o SpriteRenderer automaticamente se não atribuído
+        if (spriteRenderer == null)
+            spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+
         PlayIdle();
     }
 
@@ -43,11 +48,11 @@ public class QuadAnimator : MonoBehaviour
 
             if (isDead)
             {
-                // Animação de morte não faz loop — para no último frame
+                // Animação de morte não faz loop
                 if (index < currentFrames.Length - 1)
                 {
                     index++;
-                    rend.material.mainTexture = currentFrames[index];
+                    ApplyFrame();
                 }
                 else if (!deathFinished)
                 {
@@ -59,29 +64,58 @@ public class QuadAnimator : MonoBehaviour
 
             // Animações normais fazem loop
             index = (index + 1) % currentFrames.Length;
-            rend.material.mainTexture = currentFrames[index];
+            ApplyFrame();
         }
+    }
+
+    void SetAnimation(Sprite[] frames)
+    {
+        if (frames == null || frames.Length == 0) return;
+        if (currentFrames == frames) return; // Evita reiniciar a mesma animação
+        currentFrames = frames;
+        index = 0;
+        timer = 0f;
+        ApplyFrame();
+    }
+
+    void ApplyFrame()
+    {
+        if (spriteRenderer != null && currentFrames[index] != null)
+            spriteRenderer.sprite = currentFrames[index];
+    }
+
+    // Controla o flip horizontal do sprite
+    public void SetFacing(float horizontalDir)
+    {
+        if (spriteRenderer == null) return;
+        if (horizontalDir > 0.1f)
+            spriteRenderer.flipX = false;
+        else if (horizontalDir < -0.1f)
+            spriteRenderer.flipX = true;
     }
 
     public void PlayIdle()
     {
-        if (isDead || currentFrames == idleFrames) return;
-        currentFrames = idleFrames;
-        index = 0;
+        if (isDead) return;
+        SetAnimation(idleFrames);
     }
 
     public void PlayWalk()
     {
-        if (isDead || currentFrames == walkFrames) return;
-        currentFrames = walkFrames;
-        index = 0;
+        if (isDead) return;
+        SetAnimation(walkFrames);
     }
 
     public void PlayRun()
     {
-        if (isDead || currentFrames == runFrames) return;
-        currentFrames = runFrames;
-        index = 0;
+        if (isDead) return;
+        SetAnimation(runFrames);
+    }
+
+    public void PlayHit()
+    {
+        if (isDead) return;
+        SetAnimation(hitFrames);
     }
 
     public void PlayDeath()
@@ -90,9 +124,7 @@ public class QuadAnimator : MonoBehaviour
         isDead = true;
         currentFrames = deathFrames;
         index = 0;
-
-        // Aplica o primeiro frame da morte imediatamente
-        if (rend != null && currentFrames != null && currentFrames.Length > 0)
-            rend.material.mainTexture = currentFrames[0];
+        timer = 0f;
+        ApplyFrame();
     }
 }

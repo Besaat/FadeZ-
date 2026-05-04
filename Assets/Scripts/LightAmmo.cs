@@ -1,24 +1,30 @@
 using UnityEngine;
 
-// Gerencia a luz do player, que funciona como recurso único:
-// é munição (cada tiro drena luz), vida (sem luz o player morre)
-// e pode ser restaurada coletando orbes dropados por inimigos.
+// Gerencia a luz do player como recurso único:
+// munição (tiros drenam luz), vida (sem luz = morte) e recurso coletável.
+// Controla tanto a Intensity quanto o Range da luz para tornar
+// a redução muito mais perceptível visualmente.
 public class LightAmmo : MonoBehaviour
 {
     [Header("Referências")]
-    public Light sphereLight; // A luz 3D acoplada ao orbe do player
+    public Light sphereLight;
+    public QuadAnimator playerAnim; // Para tocar a animação de hit ao tomar dano
 
-    [Header("Configuração")]
-    public float maxIntensity = 750f;      // Intensidade máxima da luz
-    public float drainPerShot = 15f;       // Luz consumida por tiro
-    public float rechargeRate = 2f;        // Luz regenerada por segundo (passiva)
-    public float deathThreshold = 2f;      // Intensidade abaixo da qual o player morre
-    public float pickupRestoreAmount = 100f; // Luz restaurada ao coletar um orbe
+    [Header("Intensidade")]
+    public float maxIntensity = 750f;
+    public float drainPerShot = 15f;         // Drain padrão (tiro normal)
+    public float rechargeRate = 20f;         // Recarga por segundo
+    public float deathThreshold = 2f;
 
-    // Contador de orbes coletados nessa expedição (recurso que leva de volta à base)
+    [Header("Range da luz")]
+    public float maxRange = 10f;
+    public float minRange = 1.5f;
+
+    [Header("Pickup")]
+    public float pickupRestoreAmount = 100f;
+
     public static int lightBallsCollected = 0;
-
-    [HideInInspector] public float currentIntensity; // Valor atual da luz
+    [HideInInspector] public float currentIntensity;
 
     private bool isDead = false;
 
@@ -26,8 +32,6 @@ public class LightAmmo : MonoBehaviour
     {
         currentIntensity = maxIntensity;
         lightBallsCollected = 0;
-
-        // Busca o componente Light no filho se não atribuído no Inspector
         if (sphereLight == null)
             sphereLight = GetComponentInChildren<Light>();
     }
@@ -36,15 +40,11 @@ public class LightAmmo : MonoBehaviour
     {
         if (isDead) return;
 
-        // Regeneração passiva de luz
         currentIntensity += rechargeRate * Time.deltaTime;
         currentIntensity = Mathf.Clamp(currentIntensity, 0f, maxIntensity);
 
-        // Atualiza intensidade visual da luz 3D
-        if (sphereLight != null)
-            sphereLight.intensity = currentIntensity;
+        UpdateLight();
 
-        // Verifica condição de morte
         if (currentIntensity <= deathThreshold)
         {
             isDead = true;
@@ -52,19 +52,39 @@ public class LightAmmo : MonoBehaviour
         }
     }
 
-    // Consome a quantidade padrão de luz (chamado ao atirar)
+    void UpdateLight()
+    {
+        if (sphereLight == null) return;
+        float proportion = currentIntensity / maxIntensity;
+        sphereLight.intensity = currentIntensity;
+        sphereLight.range = Mathf.Lerp(minRange, maxRange, proportion);
+    }
+
+    // Drain com quantidade padrão (tiro normal)
     public void Drain()
     {
         currentIntensity -= drainPerShot;
     }
 
-    // Consome uma quantidade específica de luz (chamado por dano de inimigo)
+    // Drain com quantidade específica (ataque de área, dano de inimigo)
+    // Toca a animação de hit se o playerAnim estiver atribuído
     public void Drain(float amount)
     {
         currentIntensity -= amount;
+
+        // Toca animação de hit ao tomar dano (não ao atirar)
+        if (playerAnim != null)
+            StartCoroutine(PlayHitAnimation());
     }
 
-    // Restaura luz ao coletar pickup e registra o recurso coletado
+    // Toca hit por um curto período e volta para idle/walk
+    System.Collections.IEnumerator PlayHitAnimation()
+    {
+        playerAnim.PlayHit();
+        yield return new WaitForSeconds(0.4f); // Duração da animação de hit
+        // Não precisa forçar idle — o PlayerMove vai trocar automaticamente no próximo frame
+    }
+
     public void Restore(float amount)
     {
         currentIntensity = Mathf.Clamp(currentIntensity + amount, 0f, maxIntensity);
