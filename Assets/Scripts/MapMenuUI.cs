@@ -1,25 +1,30 @@
 using UnityEngine;
 using System.Collections;
 
+// Controla o painel de mapa/expedição aberto com Tab.
+// Permite ao jogador iniciar uma expedição ou cancelar.
+// Gerencia fade de tela e música de fundo durante a transição.
 public class MapMenuUI : MonoBehaviour
 {
-    public GameObject mapPanel;
+    [Header("UI")]
+    public GameObject mapPanel; // Painel do menu de expedição
+
+    [Header("Referências")]
     public MapManager mapManager;
     public ScreenFade screenFade;
-
     public PlayerMove playerMove;
 
     [Header("Música de Fundo")]
     public AudioSource bgMusic;
-    public float audibleVolume = 0.650f;
-    public float musicDelay = 1.5f;
+    public float audibleVolume = 0.65f;
+    public float musicDelay = 1.5f; // Atraso em segundos antes de tocar a música
 
     void Start()
     {
+        // Inicia a música silenciada — será ativada ao começar a expedição
         if (bgMusic != null)
         {
             bgMusic.volume = 0f;
-
             if (!bgMusic.isPlaying)
                 bgMusic.Play();
         }
@@ -27,73 +32,59 @@ public class MapMenuUI : MonoBehaviour
 
     void Update()
     {
+        // Tab abre/fecha o painel e pausa/retoma o movimento do player
         if (Input.GetKeyDown(KeyCode.Tab))
         {
-            bool isOpen = !mapPanel.activeSelf;
-
-            mapPanel.SetActive(isOpen);
+            bool isOpening = !mapPanel.activeSelf;
+            mapPanel.SetActive(isOpening);
 
             if (playerMove != null)
-                playerMove.enabled = !isOpen;
+                playerMove.enabled = !isOpening;
 
-            if (isOpen)
-            {
-                Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
-            }
-            else
-            {
-                Cursor.lockState = CursorLockMode.Locked;
-                Cursor.visible = false;
-            }
+            // Controle de cursor: livre no menu, oculto durante gameplay
+            Cursor.lockState = isOpening ? CursorLockMode.None : CursorLockMode.Locked;
+            Cursor.visible = isOpening;
         }
     }
 
+    // Botão "Sim" — inicia a expedição com fade e geração de mapa
     public void OnClickSim()
     {
-        // fecha mapa imediatamente
         mapPanel.SetActive(false);
-
-        // mantém mouse livre
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        // inicia música com atraso
         if (bgMusic != null)
-        {
             StartCoroutine(PlayMusicWithDelay());
-        }
 
-        // inicia transição
         StartCoroutine(DoTransition());
     }
 
-    IEnumerator PlayMusicWithDelay()
+    // Botão "Não" — fecha o painel e devolve o controle ao player
+    public void OnClickNao()
     {
-        yield return new WaitForSeconds(musicDelay);
-
-        bgMusic.Stop();
-        bgMusic.time = 0f;
-        bgMusic.volume = audibleVolume;
-        bgMusic.Play();
-    }
-
-    IEnumerator DoTransition()
-    {
-        yield return StartCoroutine(screenFade.FadeOut());
-
-        mapManager.GenerateNewMap();
-
-        yield return StartCoroutine(screenFade.FadeIn());
-
         mapPanel.SetActive(false);
 
         if (playerMove != null)
             playerMove.enabled = true;
     }
 
-    public void OnClickNao()
+    // Toca a música de fundo após um atraso (dá tempo para o fade terminar)
+    IEnumerator PlayMusicWithDelay()
     {
+        yield return new WaitForSeconds(musicDelay);
+        bgMusic.Stop();
+        bgMusic.time = 0f;
+        bgMusic.volume = audibleVolume;
+        bgMusic.Play();
+    }
+
+    // Sequência de transição: fade out → gera mapa → fade in → libera controle
+    IEnumerator DoTransition()
+    {
+        yield return StartCoroutine(screenFade.FadeOut());
+        mapManager.GenerateNewMap();
+        yield return StartCoroutine(screenFade.FadeIn());
         mapPanel.SetActive(false);
 
         if (playerMove != null)

@@ -1,24 +1,29 @@
 using UnityEngine;
 
+// Animador de sprite para inimigos — funciona igual ao QuadAnimator do player,
+// mas separado para permitir customizações específicas dos inimigos no futuro.
+// Inclui FaceDirection para virar o sprite conforme a direção de movimento.
 public class EnemyQuadAnimator : MonoBehaviour
 {
+    [Header("Referências")]
     public Renderer rend;
 
-    [Header("Animações")]
+    [Header("Frames de animação")]
     public Texture[] idleFrames;
     public Texture[] walkFrames;
     public Texture[] deathFrames;
 
-    [Header("Config")]
+    [Header("Configuração")]
     public float fps = 8f;
+
+    // Callback chamado quando a animação de morte termina (usado pelo EnemyCapsuleAI)
+    public System.Action onDeathComplete;
 
     private Texture[] currentFrames;
     private int index;
     private float timer;
     private bool isDead = false;
     private bool deathFinished = false;
-
-    public System.Action onDeathComplete;
 
     void Start()
     {
@@ -39,6 +44,7 @@ public class EnemyQuadAnimator : MonoBehaviour
 
             if (isDead)
             {
+                // Sem loop na morte — para no último frame e dispara o callback
                 if (index < deathFrames.Length - 1)
                 {
                     index++;
@@ -60,7 +66,7 @@ public class EnemyQuadAnimator : MonoBehaviour
     void SetAnimation(Texture[] frames, bool force = false)
     {
         if (frames == null || frames.Length == 0) return;
-        if (!force && currentFrames == frames) return;
+        if (!force && currentFrames == frames) return; // Evita reiniciar a mesma animação
         currentFrames = frames;
         index = 0;
         timer = 0f;
@@ -83,15 +89,17 @@ public class EnemyQuadAnimator : MonoBehaviour
     {
         if (isDead) return;
         isDead = true;
-        SetAnimation(deathFrames, true);
+        SetAnimation(deathFrames, force: true);
     }
 
-    // Flip to face direction
+    // Vira o sprite do inimigo conforme a direção horizontal de movimento
     public void FaceDirection(float horizontalDir)
     {
         if (isDead) return;
+
         Vector3 scale = transform.localScale;
         float absX = Mathf.Abs(scale.x);
+
         if (horizontalDir > 0.1f)
             transform.localScale = new Vector3(absX, scale.y, scale.z);
         else if (horizontalDir < -0.1f)

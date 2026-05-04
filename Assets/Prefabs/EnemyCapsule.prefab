@@ -215,7 +215,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -238,7 +238,10 @@ MonoBehaviour:
   speed: 3
   agroDistance: 20
   stopDistance: 1
+  damageAmount: 400
+  damageCooldown: 1
   lightBallPrefab: {fileID: 4680787416294095633, guid: 95bc9e9fba291634fab2622d980fbecd, type: 3}
+  anim: {fileID: 0}
 --- !u!54 &8913236117167677456
 Rigidbody:
   m_ObjectHideFlags: 0

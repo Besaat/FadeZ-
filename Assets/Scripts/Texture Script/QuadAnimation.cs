@@ -1,26 +1,30 @@
 using UnityEngine;
 
+// Animador de sprite para o player usando troca de texturas em um quad (plano).
+// Simula animação 2D num ambiente 3D trocando a textura do material a cada frame.
+// As texturas de cada animação são definidas no Inspector.
 public class QuadAnimator : MonoBehaviour
 {
-    public Renderer rend;
+    [Header("Referências")]
+    public Renderer rend; // Renderer do quad (plano com o sprite)
 
-    [Header("Animações")]
-    public Texture[] idleFrames;
-    public Texture[] walkFrames;
-    public Texture[] runFrames;
-    public Texture[] deathFrames;
+    [Header("Frames de animação")]
+    public Texture[] idleFrames;  // Frames da animação parada
+    public Texture[] walkFrames;  // Frames da animação andando
+    public Texture[] runFrames;   // Frames da animação correndo (reservado para futuro)
+    public Texture[] deathFrames; // Frames da animação de morte
 
-    [Header("Config")]
-    public float fps = 8f;
+    [Header("Configuração")]
+    public float fps = 8f; // Frames por segundo da animação
+
+    // Callback chamado quando a animação de morte termina (usado pelo PlayerDeath)
+    public System.Action onDeathComplete;
 
     private Texture[] currentFrames;
     private int index;
     private float timer;
     private bool isDead = false;
     private bool deathFinished = false;
-
-    // Callback when death animation ends
-    public System.Action onDeathComplete;
 
     void Start()
     {
@@ -35,11 +39,11 @@ public class QuadAnimator : MonoBehaviour
 
         if (timer >= 1f / fps)
         {
-            timer = 0;
+            timer = 0f;
 
-            // If death animation, don't loop — stop at last frame
             if (isDead)
             {
+                // Animação de morte não faz loop — para no último frame
                 if (index < currentFrames.Length - 1)
                 {
                     index++;
@@ -53,6 +57,7 @@ public class QuadAnimator : MonoBehaviour
                 return;
             }
 
+            // Animações normais fazem loop
             index = (index + 1) % currentFrames.Length;
             rend.material.mainTexture = currentFrames[index];
         }
@@ -85,6 +90,9 @@ public class QuadAnimator : MonoBehaviour
         isDead = true;
         currentFrames = deathFrames;
         index = 0;
-        rend.material.mainTexture = currentFrames[0];
+
+        // Aplica o primeiro frame da morte imediatamente
+        if (rend != null && currentFrames != null && currentFrames.Length > 0)
+            rend.material.mainTexture = currentFrames[0];
     }
 }

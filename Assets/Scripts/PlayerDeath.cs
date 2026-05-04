@@ -1,12 +1,16 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+// Gerencia a morte do player.
+// É ativado pelo LightAmmo quando a luz zera.
+// Usa padrão Singleton estático para ser chamado de qualquer lugar com PlayerDeath.Die().
 public class PlayerDeath : MonoBehaviour
 {
-    public QuadAnimator anim;
-    public PlayerMove playerMove;
+    [Header("Referências")]
+    public QuadAnimator anim;       // Animador de sprite (para animação de morte)
+    public PlayerMove playerMove;   // Referência ao movimento para desativá-lo
 
-    private static PlayerDeath instance;
+    private static PlayerDeath instance; // Referência estática para chamada global
     private bool isDead = false;
 
     void Awake()
@@ -14,6 +18,7 @@ public class PlayerDeath : MonoBehaviour
         instance = this;
     }
 
+    // Método estático chamado pelo LightAmmo quando a luz chega ao limite mínimo
     public static void Die()
     {
         if (instance != null)
@@ -25,15 +30,16 @@ public class PlayerDeath : MonoBehaviour
         if (isDead) return;
         isDead = true;
 
-        // Disable movement
+        // Desativa o movimento imediatamente
         if (playerMove != null)
             playerMove.enabled = false;
 
-        // Play death animation then restart
+        // Toca a animação de morte e reinicia a cena ao terminar
         if (anim != null)
         {
             anim.onDeathComplete = () =>
             {
+                // TODO: Futuramente carregar a tela de derrota em vez de reiniciar diretamente
                 SceneManager.LoadScene(SceneManager.GetActiveScene().name);
             };
             anim.PlayDeath();

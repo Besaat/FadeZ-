@@ -1,30 +1,34 @@
 using UnityEngine;
 
+// Simula a queda de uma folha de árvore com movimento senoidal lateral.
+// Instanciado pelo TreeLeafSpawner em intervalos aleatórios.
+// Auto-destrói após alguns segundos para não acumular objetos na cena.
 public class LeafFall : MonoBehaviour
 {
-    public float fallSpeed = 1.5f;
-    public float swayAmount = 0.5f;
-    public float swaySpeed = 2f;
-    public float rotateSpeed = 90f;
+    [Header("Movimento")]
+    public float fallSpeed = 1.5f;   // Velocidade de descida
+    public float swayAmount = 0.5f;  // Amplitude do balanço lateral
+    public float swaySpeed = 2f;     // Velocidade do balanço lateral
+    public float rotateSpeed = 90f;  // Velocidade de rotação (graus/segundo)
 
-    float offset;
+    private float timeOffset; // Offset aleatório para evitar que todas as folhas sincronizem
 
     void Start()
     {
-        offset = Random.Range(0f, 100f);
-        Destroy(gameObject, 5f); // destrói depois de um tempo
+        timeOffset = Random.Range(0f, 100f);
+        Destroy(gameObject, 5f);
     }
 
     void Update()
     {
-        // movimento de queda
+        // Queda vertical
         transform.position += Vector3.down * fallSpeed * Time.deltaTime;
 
-        // leve balanço lateral
-        float sway = Mathf.Sin(Time.time * swaySpeed + offset) * swayAmount;
-        transform.position += new Vector3(sway * Time.deltaTime, 0, 0);
+        // Balanço lateral senoidal
+        float sway = Mathf.Sin(Time.time * swaySpeed + timeOffset) * swayAmount;
+        transform.position += new Vector3(sway * Time.deltaTime, 0f, 0f);
 
-        // rotação
+        // Rotação contínua para efeito visual
         transform.Rotate(Vector3.forward * rotateSpeed * Time.deltaTime);
     }
 }
