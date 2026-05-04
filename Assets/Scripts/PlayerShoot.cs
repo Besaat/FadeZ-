@@ -36,8 +36,15 @@ public class PlayerShoot : MonoBehaviour
     void Start()
     {
         droneFollow = shootPoint.GetComponent<DroneFollow>();
+
+        // Busca o LightAmmo no shootPoint primeiro, se não encontrar busca na cena toda
         lightAmmo = shootPoint.GetComponent<LightAmmo>();
+        if (lightAmmo == null)
+            lightAmmo = FindFirstObjectByType<LightAmmo>();
+
         orbLight = shootPoint.GetComponentInChildren<Light>();
+        if (orbLight == null)
+            orbLight = FindFirstObjectByType<Light>();
     }
 
     void Update()

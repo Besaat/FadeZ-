@@ -15,19 +15,13 @@ public class MapMenuUI : MonoBehaviour
     public PlayerMove playerMove;
 
     [Header("Música de Fundo")]
-    public AudioSource bgMusic;
-    public float audibleVolume = 0.65f;
-    public float musicDelay = 1.5f; // Atraso em segundos antes de tocar a música
+    public AudioSource bgMusic; // Volume controlado diretamente no Audio Source (Inspector)
 
     void Start()
     {
-        // Inicia a música silenciada — será ativada ao começar a expedição
-        if (bgMusic != null)
-        {
-            bgMusic.volume = 0f;
-            if (!bgMusic.isPlaying)
-                bgMusic.Play();
-        }
+        // Música toca com o volume configurado no Inspector do Audio Source
+        if (bgMusic != null && !bgMusic.isPlaying)
+            bgMusic.Play();
     }
 
     void Update()
@@ -54,9 +48,6 @@ public class MapMenuUI : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        if (bgMusic != null)
-            StartCoroutine(PlayMusicWithDelay());
-
         StartCoroutine(DoTransition());
     }
 
@@ -67,16 +58,6 @@ public class MapMenuUI : MonoBehaviour
 
         if (playerMove != null)
             playerMove.enabled = true;
-    }
-
-    // Toca a música de fundo após um atraso (dá tempo para o fade terminar)
-    IEnumerator PlayMusicWithDelay()
-    {
-        yield return new WaitForSeconds(musicDelay);
-        bgMusic.Stop();
-        bgMusic.time = 0f;
-        bgMusic.volume = audibleVolume;
-        bgMusic.Play();
     }
 
     // Sequência de transição: fade out → gera mapa → fade in → libera controle

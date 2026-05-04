@@ -44,8 +44,9 @@ public class LightBallPickup : MonoBehaviour
             playerLightAmmo.Restore(playerLightAmmo.pickupRestoreAmount);
 
         // Toca o som na posição do pickup (independente do objeto, que será destruído)
+        // Volume 0.85 = 15% menor que o padrão (1.0)
         if (pickupSound != null && pickupSound.clip != null)
-            AudioSource.PlayClipAtPoint(pickupSound.clip, transform.position);
+            AudioSource.PlayClipAtPoint(pickupSound.clip, transform.position, 0.85f);
 
         Destroy(gameObject);
     }

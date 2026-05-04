@@ -715,8 +715,6 @@ MonoBehaviour:
   screenFade: {fileID: 1814209268}
   playerMove: {fileID: 215354426}
   bgMusic: {fileID: 1737488930}
-  audibleVolume: 1
-  musicDelay: 2
 --- !u!4 &104665047 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3284715735785931606, guid: 65203869388f9c84099d593260fa88e6, type: 3}
@@ -1272,7 +1270,7 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: 2f4bbceecc269f7409e3293571aafbe1, type: 3}
   m_PlayOnAwake: 0
-  m_Volume: 1
+  m_Volume: 0.901
   m_Pitch: 1
   Loop: 0
   Mute: 0
@@ -1410,10 +1408,10 @@ MonoBehaviour:
   shootSound: {fileID: 8300000, guid: 2f4bbceecc269f7409e3293571aafbe1, type: 3}
   areaAttackSound: {fileID: 0}
   fireRate: 1
-  normalDrainAmount: 15
+  normalDrainAmount: 100
   areaRadius: 4
   areaDamage: 300
-  areaDrainAmount: 80
+  areaDrainAmount: 7000
   areaCooldown: 1.5
   areaFlashDuration: 0.2
 --- !u!1 &242842506
@@ -3976,8 +3974,8 @@ Light:
   serializedVersion: 11
   m_Type: 2
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 250
-  m_Range: 6
+  m_Intensity: 300
+  m_Range: 5000
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize: 10
@@ -11559,9 +11557,9 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 8300000, guid: 23c475e1f7d665744abe6cfc2cd614dc, type: 3}
+  m_Resource: {fileID: 8300000, guid: 3f8148f36993c9b41809240c7623e118, type: 3}
   m_PlayOnAwake: 1
-  m_Volume: 0.65
+  m_Volume: 0.15
   m_Pitch: 1
   Loop: 1
   Mute: 0
@@ -14304,7 +14302,7 @@ MeshRenderer:
   m_RenderingLayerMask: 5
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: db953421d3b894e48af4fbcffa506994, type: 2}
+  - {fileID: 2100000, guid: 7d06c5bb867a5054fb8178fc909e4e26, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
