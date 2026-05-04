@@ -1344,8 +1344,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 48f338b16f223de4f82d11bf24683e9a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  heartbeat: {fileID: 0}
-  enemy: {fileID: 0}
 --- !u!114 &215354425
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1358,10 +1356,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01a4b3fe4c7f3e946ab5475bf2ab3ee6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  flashlight: {fileID: 0}
-  cam: {fileID: 330585545}
-  range: 10
-  currentEnemy: {fileID: 0}
 --- !u!114 &215354426
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2241,11 +2235,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c3ebdcbd8c6c1aa4fa35a46ce33c1a1e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enemy: {fileID: 0}
-  pulseSpeed: 10
-  pulseAmount: 0.1
-  smoothResetSpeed: 5
-  originalPos: {x: 0, y: 0, z: 0}
 --- !u!1001 &342344374
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11403,7 +11392,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4506892616302905745, guid: 8277a3c9de17ece4c8a3fbca7bd46994, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -107.35893
+      value: -106.8
       objectReference: {fileID: 0}
     - target: {fileID: 4506892616302905745, guid: 8277a3c9de17ece4c8a3fbca7bd46994, type: 3}
       propertyPath: m_LocalPosition.y
@@ -11411,7 +11400,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4506892616302905745, guid: 8277a3c9de17ece4c8a3fbca7bd46994, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 10.484749
+      value: 10.64
       objectReference: {fileID: 0}
     - target: {fileID: 4506892616302905745, guid: 8277a3c9de17ece4c8a3fbca7bd46994, type: 3}
       propertyPath: m_LocalRotation.w
