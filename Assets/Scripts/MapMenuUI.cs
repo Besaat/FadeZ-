@@ -19,14 +19,12 @@ public class MapMenuUI : MonoBehaviour
 
     void Start()
     {
-        // Música toca com o volume configurado no Inspector do Audio Source
         if (bgMusic != null && !bgMusic.isPlaying)
             bgMusic.Play();
     }
 
     void Update()
     {
-        // Tab abre/fecha o painel e pausa/retoma o movimento do player
         if (Input.GetKeyDown(KeyCode.Tab))
         {
             bool isOpening = !mapPanel.activeSelf;
@@ -35,7 +33,6 @@ public class MapMenuUI : MonoBehaviour
             if (playerMove != null)
                 playerMove.enabled = !isOpening;
 
-            // Controle de cursor: livre no menu, oculto durante gameplay
             Cursor.lockState = isOpening ? CursorLockMode.None : CursorLockMode.Locked;
             Cursor.visible = isOpening;
         }
@@ -60,7 +57,7 @@ public class MapMenuUI : MonoBehaviour
             playerMove.enabled = true;
     }
 
-    // Sequência de transição: fade out → gera mapa → fade in → libera controle
+    // Sequência de transição: fade out → gera mapa → fade in → libera controle + habilidades
     IEnumerator DoTransition()
     {
         yield return StartCoroutine(screenFade.FadeOut());
@@ -69,6 +66,10 @@ public class MapMenuUI : MonoBehaviour
         mapPanel.SetActive(false);
 
         if (playerMove != null)
+        {
             playerMove.enabled = true;
+            playerMove.dashEnabled = true;
+            playerMove.runEnabled = true;
+        }
     }
 }

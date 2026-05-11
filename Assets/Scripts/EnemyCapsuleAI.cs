@@ -25,7 +25,7 @@ public class EnemyCapsuleAI : MonoBehaviour
     public GameObject dashGhostPrefab;
     public int ghostCount = 6;
     public float ghostLifetime = 0.2f;
-    public Color ghostColor = new Color(0f, 0f, 0f, 0.6f); // Preto semitransparente
+    public Color ghostColor = new Color(0f, 0f, 0f, 0.6f);
 
     [Header("Drop")]
     public GameObject lightBallPrefab;
@@ -39,9 +39,9 @@ public class EnemyCapsuleAI : MonoBehaviour
     private bool isDashing = false;
     private bool isDead = false;
 
-    // Cor original do sprite — salva no Start para restaurar após o windup
     private Renderer spriteRend;
     private Color originalColor;
+    private MapManager mapManager;
 
     void Start()
     {
@@ -50,17 +50,17 @@ public class EnemyCapsuleAI : MonoBehaviour
 
         if (anim == null) anim = GetComponentInChildren<EnemyQuadAnimator>();
 
-        // Busca o Renderer especificamente no filho chamado "Quad"
         Transform quadTransform = transform.Find("Quad");
         if (quadTransform != null)
             spriteRend = quadTransform.GetComponent<Renderer>();
 
-        // Fallback: se não encontrar "Quad", usa o EnemyQuadAnimator para pegar o Renderer
         if (spriteRend == null && anim != null)
             spriteRend = anim.rend;
 
         if (spriteRend != null)
             originalColor = spriteRend.material.color;
+
+        mapManager = FindFirstObjectByType<MapManager>();
     }
 
     void Update()
@@ -96,25 +96,21 @@ public class EnemyCapsuleAI : MonoBehaviour
         }
     }
 
-    // Dash com windup vermelho → move rapidamente em direção ao player
     IEnumerator DoDash()
     {
         isDashing = true;
         dashTimer = dashCooldown;
 
-        // Fase de windup: tinge o Renderer de vermelho
         if (spriteRend != null)
             spriteRend.material.color = new Color(1f, 0.2f, 0.2f, 1f);
 
         yield return new WaitForSeconds(dashWindup);
 
-        // Restaura a cor original
         if (spriteRend != null)
             spriteRend.material.color = originalColor;
 
         if (isDead) { isDashing = false; yield break; }
 
-        // Calcula direção no momento do dash (não no windup)
         Vector3 dashDir = player != null
             ? (player.position - transform.position).normalized
             : transform.forward;
@@ -128,7 +124,6 @@ public class EnemyCapsuleAI : MonoBehaviour
         {
             transform.position += dashDir * dashSpeed * Time.deltaTime;
 
-            // Spawna ghost na posição atual do inimigo
             if (dashGhostPrefab != null && elapsed >= nextGhostTime)
             {
                 SpawnGhost();
@@ -144,28 +139,17 @@ public class EnemyCapsuleAI : MonoBehaviour
 
     void SpawnGhost()
     {
-        Debug.Log("SpawnGhost chamado");
+        if (spriteRend == null) return;
 
-        if (spriteRend == null) { Debug.Log("spriteRend é nulo"); return; }
-
-        // Pega a textura atual diretamente do EnemyQuadAnimator
         Texture2D currentTex = null;
         if (anim != null && anim.rend != null)
             currentTex = anim.rend.material.mainTexture as Texture2D;
-        else
-            Debug.Log("anim ou anim.rend é nulo — anim: " + (anim != null) + " | anim.rend: " + (anim != null && anim.rend != null));
 
-        Debug.Log("currentTex: " + (currentTex != null ? currentTex.name : "NULO"));
-
-        // Só instancia o ghost se tiver uma textura válida
         if (currentTex == null) return;
 
         GameObject ghost = Instantiate(dashGhostPrefab, spriteRend.transform.position, spriteRend.transform.rotation);
-
-        // Copia a escala do Quad do inimigo
         ghost.transform.localScale = spriteRend.transform.lossyScale;
 
-        // Detecta o flip horizontal pelo sinal da escala X
         bool flipX = spriteRend.transform.lossyScale.x < 0f;
 
         DashGhost dg = ghost.GetComponent<DashGhost>();
@@ -201,12 +185,15 @@ public class EnemyCapsuleAI : MonoBehaviour
         isDead = true;
         StopAllCoroutines();
 
-        // Restaura a cor antes de morrer para evitar sprite vermelho travado
         if (spriteRend != null)
             spriteRend.material.color = originalColor;
 
         if (lightBallPrefab != null)
             Instantiate(lightBallPrefab, transform.position, Quaternion.identity);
+
+        // Notifica o MapManager que este inimigo morreu
+        if (mapManager != null)
+            mapManager.OnEnemyDied();
 
         if (anim != null)
         {

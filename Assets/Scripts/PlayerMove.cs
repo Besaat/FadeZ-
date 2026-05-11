@@ -4,8 +4,8 @@ using System.Collections;
 // Responsável pela movimentação, corrida, dash e flip do player.
 // Controles:
 // - WASD: mover
-// - Shift: correr (velocidade maior, animação de run)
-// - Space: dash na direção do movimento (invencível durante o dash)
+// - Shift: correr (velocidade maior, animação de run) — requer runEnabled = true
+// - Space: dash na direção do movimento (invencível durante o dash) — requer dashEnabled = true
 public class PlayerMove : MonoBehaviour
 {
     [Header("Movimento")]
@@ -14,11 +14,14 @@ public class PlayerMove : MonoBehaviour
     public float stopDamping = 25f;     // Quanto mais alto, mais rápido para ao soltar a tecla
 
     [Header("Dash")]
-    public bool dashEnabled = true;     // Desmarque no Inspector para desativar o dash (ex: hub)
+    public bool dashEnabled = false;    // Desativado na base; ativado ao entrar na dungeon
     public float dashSpeed = 18f;
     public float dashDuration = 0.15f;
     public float dashCooldown = 0.8f;
     public KeyCode dashKey = KeyCode.Space;
+
+    [Header("Corrida")]
+    public bool runEnabled = false;     // Desativado na base; ativado ao entrar na dungeon
 
     [Header("Rastro do Dash (Ghost)")]
     public GameObject dashGhostPrefab;  // Prefab com SpriteRenderer + DashGhost
@@ -71,7 +74,8 @@ public class PlayerMove : MonoBehaviour
 
         if (moveInput.sqrMagnitude > 0.01f)
         {
-            float currentSpeed = Input.GetKey(KeyCode.LeftShift) ? runSpeed : walkSpeed;
+            // Corrida só ocorre se runEnabled estiver ativo
+            float currentSpeed = (runEnabled && Input.GetKey(KeyCode.LeftShift)) ? runSpeed : walkSpeed;
             rb.MovePosition(rb.position + moveInput.normalized * currentSpeed * Time.fixedDeltaTime);
         }
         else
@@ -96,7 +100,6 @@ public class PlayerMove : MonoBehaviour
         {
             rb.MovePosition(rb.position + lastMoveDirection * dashSpeed * Time.fixedDeltaTime);
 
-            // Spawna ghost na posição atual do player
             if (dashGhostPrefab != null && elapsed >= nextGhostTime)
             {
                 SpawnGhost();
@@ -115,10 +118,7 @@ public class PlayerMove : MonoBehaviour
     {
         if (spriteRenderer == null) return;
 
-        // Instancia o ghost na posição e rotação atuais do spriteRenderer
         GameObject ghost = Instantiate(dashGhostPrefab, spriteRenderer.transform.position, spriteRenderer.transform.rotation);
-
-        // Copia a escala do spriteRenderer do player
         ghost.transform.localScale = spriteRenderer.transform.lossyScale;
 
         DashGhost dg = ghost.GetComponent<DashGhost>();
@@ -133,7 +133,7 @@ public class PlayerMove : MonoBehaviour
 
         if (moveInput.sqrMagnitude > 0.01f)
         {
-            if (Input.GetKey(KeyCode.LeftShift))
+            if (runEnabled && Input.GetKey(KeyCode.LeftShift))
                 anim.PlayRun();
             else
                 anim.PlayWalk();

@@ -3,7 +3,7 @@ using System.Collections;
 
 // Trigger nas bordas do mapa de expedição.
 // Quando o player toca a borda: fade out → gera novo mapa → player spawna no lado oposto → fade in.
-// IMPORTANTE: este objeto precisa ter um Collider com Is Trigger = true.
+// BLOQUEADO enquanto allEnemiesDead for false no MapManager.
 public class DungeonBorderTrigger : MonoBehaviour
 {
     [Header("Referências")]
@@ -12,7 +12,7 @@ public class DungeonBorderTrigger : MonoBehaviour
 
     [Header("Direção desta borda")]
     [Tooltip("Vetor normalizado que aponta para dentro do mapa a partir desta borda. Ex: borda Norte = (0,0,-1)")]
-    public Vector3 entryDirection = Vector3.forward; // Configurar no Inspector para cada borda
+    public Vector3 entryDirection = Vector3.forward;
 
     private bool onCooldown = false;
 
@@ -20,6 +20,10 @@ public class DungeonBorderTrigger : MonoBehaviour
     {
         if (onCooldown) return;
         if (!other.CompareTag("Player")) return;
+
+        // Bloqueia a transição se ainda houver inimigos vivos
+        MapManager mapManager = FindFirstObjectByType<MapManager>();
+        if (mapManager != null && !mapManager.allEnemiesDead) return;
 
         onCooldown = true;
         StartCoroutine(DoTransition());
@@ -35,8 +39,6 @@ public class DungeonBorderTrigger : MonoBehaviour
         else
             yield return new WaitForSeconds(0.5f);
 
-        // Informa ao MapManager de qual direção o player veio
-        // para que ele spawne no lado oposto
         MapManager mapManager = FindFirstObjectByType<MapManager>();
         if (mapManager != null)
         {

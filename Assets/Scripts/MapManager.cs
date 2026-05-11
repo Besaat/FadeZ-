@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 // Gerencia a geração procedural do mapa de expedição.
 public class MapManager : MonoBehaviour
@@ -10,6 +11,9 @@ public class MapManager : MonoBehaviour
     public Transform baseSpawn;
     public Transform mapSpawn;
     public CameraFollow cameraFollow;
+    public PlayerMove playerMove;
+    public FloorTextureRandomizer floorRandomizer;
+    public CardSelectionUI cardSelectionUI;
 
     [Header("Mapa")]
     public float mapSize = 50f;
@@ -50,8 +54,13 @@ public class MapManager : MonoBehaviour
     public float timeBetweenWaves = 5f;
     public float timeBetweenSpawns = 0.5f;
 
-    // Direção da última borda atravessada — definida pelo DungeonBorderTrigger
     [HideInInspector] public Vector3 lastEntryDirection = Vector3.zero;
+
+    public bool allEnemiesDead { get; private set; } = false;
+
+    private int totalEnemiesSpawned = 0;
+    private int enemiesDead = 0;
+    private bool wavesFinished = false;
 
     void Update()
     {
@@ -61,6 +70,11 @@ public class MapManager : MonoBehaviour
 
     public void GenerateNewMap()
     {
+        allEnemiesDead = false;
+        totalEnemiesSpawned = 0;
+        enemiesDead = 0;
+        wavesFinished = false;
+
         ClearMap();
 
         SpawnCategory(treePrefabs, treeCount, treeMinScale, treeMaxScale, treeMinDistance, treeSpawnY);
@@ -68,11 +82,13 @@ public class MapManager : MonoBehaviour
         SpawnCategory(rockPrefabs, rockCount, rockMinScale, rockMaxScale, rockMinDistance, rockSpawnY);
         SpawnBorderTrees();
 
-        // Spawna o player no lado oposto da borda que ele atravessou
         TeleportPlayer(GetOppositeSpawnPosition());
 
         if (cameraFollow != null)
             cameraFollow.SetMapBounds(mapSpawn.position, mapSize);
+
+        if (floorRandomizer != null)
+            floorRandomizer.RandomizeTexture();
 
         StartCoroutine(SpawnWaves());
     }
@@ -85,6 +101,30 @@ public class MapManager : MonoBehaviour
 
         if (cameraFollow != null)
             cameraFollow.ClearMapBounds();
+
+        if (playerMove != null)
+        {
+            playerMove.dashEnabled = false;
+            playerMove.runEnabled = false;
+        }
+    }
+
+    public void OnEnemyDied()
+    {
+        enemiesDead++;
+        Debug.Log("OnEnemyDied — mortos: " + enemiesDead + " / spawned: " + totalEnemiesSpawned + " | wavesFinished: " + wavesFinished);
+
+        if (wavesFinished && enemiesDead >= totalEnemiesSpawned)
+            OnAllEnemiesDead();
+    }
+
+    void OnAllEnemiesDead()
+    {
+        allEnemiesDead = true;
+        Debug.Log("OnAllEnemiesDead chamado — cardSelectionUI: " + (cardSelectionUI != null));
+
+        if (cardSelectionUI != null)
+            cardSelectionUI.ShowCards();
     }
 
     void ClearMap()
@@ -94,12 +134,10 @@ public class MapManager : MonoBehaviour
             Destroy(mapParent.transform.GetChild(i).gameObject);
     }
 
-    // Calcula posição de spawn oposta à borda que o player atravessou
-    // Ex: entrou pelo Norte → spawna no Sul
     Vector3 GetOppositeSpawnPosition()
     {
         if (lastEntryDirection == Vector3.zero)
-            return mapSpawn.position; // Primeira expedição: spawna no centro
+            return mapSpawn.position;
 
         float spawnOffset = mapSize - borderTreeDepth - playerSafeZone;
         Vector3 spawnPos = mapSpawn.position + (-lastEntryDirection.normalized) * spawnOffset;
@@ -213,6 +251,12 @@ public class MapManager : MonoBehaviour
                 yield return new WaitForSeconds(timeBetweenSpawns);
             }
         }
+
+        wavesFinished = true;
+        Debug.Log("Waves finalizadas — total spawned: " + totalEnemiesSpawned + " | mortos: " + enemiesDead);
+
+        if (enemiesDead >= totalEnemiesSpawned && totalEnemiesSpawned > 0)
+            OnAllEnemiesDead();
     }
 
     void SpawnOneEnemy()
@@ -230,6 +274,7 @@ public class MapManager : MonoBehaviour
 
             GameObject prefab = enemyPrefabs[Random.Range(0, enemyPrefabs.Length)];
             Instantiate(prefab, pos, Quaternion.identity, mapParent.transform);
+            totalEnemiesSpawned++;
             return;
         }
     }
