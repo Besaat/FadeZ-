@@ -1212,13 +1212,15 @@ MonoBehaviour:
   walkSpeed: 5
   runSpeed: 9
   stopDamping: 25
+  dashEnabled: 1
   dashSpeed: 55
   dashDuration: 0.1
   dashCooldown: 0.8
   dashKey: 32
-  dashTrailPrefab: {fileID: 0}
-  trailCount: 5
-  trailLifetime: 0.3
+  dashGhostPrefab: {fileID: 4941217894497774844, guid: 1e3881f3db5dfa4479d80bfd89ccb8e8, type: 3}
+  ghostCount: 6
+  ghostLifetime: 0.2
+  ghostColor: {r: 1, g: 1, b: 1, a: 1}
   anim: {fileID: 548827195}
   spriteRenderer: {fileID: 548827196}
   isInvincible: 0

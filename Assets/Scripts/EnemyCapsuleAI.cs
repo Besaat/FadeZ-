@@ -21,6 +21,12 @@ public class EnemyCapsuleAI : MonoBehaviour
     public float dashWindup = 0.5f;
     public float dashTriggerDistance = 6f;
 
+    [Header("Rastro do Dash (Ghost)")]
+    public GameObject dashGhostPrefab;
+    public int ghostCount = 6;
+    public float ghostLifetime = 0.2f;
+    public Color ghostColor = new Color(0f, 0f, 0f, 0.6f); // Preto semitransparente
+
     [Header("Drop")]
     public GameObject lightBallPrefab;
 
@@ -34,7 +40,7 @@ public class EnemyCapsuleAI : MonoBehaviour
     private bool isDead = false;
 
     // Cor original do sprite — salva no Start para restaurar após o windup
-    private SpriteRenderer spriteRend;
+    private Renderer spriteRend;
     private Color originalColor;
 
     void Start()
@@ -44,9 +50,17 @@ public class EnemyCapsuleAI : MonoBehaviour
 
         if (anim == null) anim = GetComponentInChildren<EnemyQuadAnimator>();
 
-        // Busca o SpriteRenderer no filho para o efeito de cor do windup
-        spriteRend = GetComponentInChildren<SpriteRenderer>();
-        if (spriteRend != null) originalColor = spriteRend.color;
+        // Busca o Renderer especificamente no filho chamado "Quad"
+        Transform quadTransform = transform.Find("Quad");
+        if (quadTransform != null)
+            spriteRend = quadTransform.GetComponent<Renderer>();
+
+        // Fallback: se não encontrar "Quad", usa o EnemyQuadAnimator para pegar o Renderer
+        if (spriteRend == null && anim != null)
+            spriteRend = anim.rend;
+
+        if (spriteRend != null)
+            originalColor = spriteRend.material.color;
     }
 
     void Update()
@@ -88,16 +102,15 @@ public class EnemyCapsuleAI : MonoBehaviour
         isDashing = true;
         dashTimer = dashCooldown;
 
-        // Fase de windup: tinge o SpriteRenderer de vermelho
-        // Usa SpriteRenderer.color em vez de material.color para compatibilidade com Unlit
+        // Fase de windup: tinge o Renderer de vermelho
         if (spriteRend != null)
-            spriteRend.color = new Color(1f, 0.2f, 0.2f, 1f);
+            spriteRend.material.color = new Color(1f, 0.2f, 0.2f, 1f);
 
         yield return new WaitForSeconds(dashWindup);
 
         // Restaura a cor original
         if (spriteRend != null)
-            spriteRend.color = originalColor;
+            spriteRend.material.color = originalColor;
 
         if (isDead) { isDashing = false; yield break; }
 
@@ -108,14 +121,56 @@ public class EnemyCapsuleAI : MonoBehaviour
         dashDir.y = 0f;
 
         float elapsed = 0f;
+        float ghostInterval = dashGhostPrefab != null ? dashDuration / ghostCount : float.MaxValue;
+        float nextGhostTime = 0f;
+
         while (elapsed < dashDuration && !isDead)
         {
             transform.position += dashDir * dashSpeed * Time.deltaTime;
+
+            // Spawna ghost na posição atual do inimigo
+            if (dashGhostPrefab != null && elapsed >= nextGhostTime)
+            {
+                SpawnGhost();
+                nextGhostTime += ghostInterval;
+            }
+
             elapsed += Time.deltaTime;
             yield return null;
         }
 
         isDashing = false;
+    }
+
+    void SpawnGhost()
+    {
+        Debug.Log("SpawnGhost chamado");
+
+        if (spriteRend == null) { Debug.Log("spriteRend é nulo"); return; }
+
+        // Pega a textura atual diretamente do EnemyQuadAnimator
+        Texture2D currentTex = null;
+        if (anim != null && anim.rend != null)
+            currentTex = anim.rend.material.mainTexture as Texture2D;
+        else
+            Debug.Log("anim ou anim.rend é nulo — anim: " + (anim != null) + " | anim.rend: " + (anim != null && anim.rend != null));
+
+        Debug.Log("currentTex: " + (currentTex != null ? currentTex.name : "NULO"));
+
+        // Só instancia o ghost se tiver uma textura válida
+        if (currentTex == null) return;
+
+        GameObject ghost = Instantiate(dashGhostPrefab, spriteRend.transform.position, spriteRend.transform.rotation);
+
+        // Copia a escala do Quad do inimigo
+        ghost.transform.localScale = spriteRend.transform.lossyScale;
+
+        // Detecta o flip horizontal pelo sinal da escala X
+        bool flipX = spriteRend.transform.lossyScale.x < 0f;
+
+        DashGhost dg = ghost.GetComponent<DashGhost>();
+        if (dg != null)
+            dg.InitFromTexture(currentTex, flipX, ghostColor, ghostLifetime);
     }
 
     void OnTriggerEnter(Collider other)
@@ -148,7 +203,7 @@ public class EnemyCapsuleAI : MonoBehaviour
 
         // Restaura a cor antes de morrer para evitar sprite vermelho travado
         if (spriteRend != null)
-            spriteRend.color = originalColor;
+            spriteRend.material.color = originalColor;
 
         if (lightBallPrefab != null)
             Instantiate(lightBallPrefab, transform.position, Quaternion.identity);

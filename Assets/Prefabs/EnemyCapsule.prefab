@@ -245,8 +245,12 @@ MonoBehaviour:
   dashCooldown: 2
   dashWindup: 0.2
   dashTriggerDistance: 5
+  dashGhostPrefab: {fileID: 5078116157069671638, guid: 694906097a13f764a8de1512a3ecc23a, type: 3}
+  ghostCount: 6
+  ghostLifetime: 0.4
+  ghostColor: {r: 0, g: 0, b: 0, a: 1}
   lightBallPrefab: {fileID: 4680787416294095633, guid: 95bc9e9fba291634fab2622d980fbecd, type: 3}
-  anim: {fileID: 0}
+  anim: {fileID: -1899417532711178384}
 --- !u!54 &8913236117167677456
 Rigidbody:
   m_ObjectHideFlags: 0

@@ -14,15 +14,17 @@ public class PlayerMove : MonoBehaviour
     public float stopDamping = 25f;     // Quanto mais alto, mais rápido para ao soltar a tecla
 
     [Header("Dash")]
+    public bool dashEnabled = true;     // Desmarque no Inspector para desativar o dash (ex: hub)
     public float dashSpeed = 18f;
     public float dashDuration = 0.15f;
     public float dashCooldown = 0.8f;
     public KeyCode dashKey = KeyCode.Space;
 
-    [Header("Rastro do Dash")]
-    public GameObject dashTrailPrefab;  // Prefab do rastro de luz (opcional)
-    public int trailCount = 5;          // Quantidade de rastros gerados durante o dash
-    public float trailLifetime = 0.3f;  // Tempo de vida de cada rastro
+    [Header("Rastro do Dash (Ghost)")]
+    public GameObject dashGhostPrefab;  // Prefab com SpriteRenderer + DashGhost
+    public int ghostCount = 6;          // Quantidade de ghosts gerados durante o dash
+    public float ghostLifetime = 0.2f;  // Tempo que cada ghost leva para sumir
+    public Color ghostColor = new Color(1f, 1f, 1f, 0.6f); // Cor inicial do ghost
 
     [Header("Referências")]
     public QuadAnimator anim;
@@ -59,7 +61,7 @@ public class PlayerMove : MonoBehaviour
         HandleFlip(h);
         HandleAnimation();
 
-        if (Input.GetKeyDown(dashKey) && dashCooldownTimer <= 0f)
+        if (dashEnabled && Input.GetKeyDown(dashKey) && dashCooldownTimer <= 0f)
             StartCoroutine(DoDash());
     }
 
@@ -87,19 +89,18 @@ public class PlayerMove : MonoBehaviour
         if (anim != null) anim.PlayRun();
 
         float elapsed = 0f;
-        float trailInterval = dashDuration / trailCount;
-        float nextTrailTime = 0f;
+        float ghostInterval = dashGhostPrefab != null ? dashDuration / ghostCount : float.MaxValue;
+        float nextGhostTime = 0f;
 
         while (elapsed < dashDuration)
         {
             rb.MovePosition(rb.position + lastMoveDirection * dashSpeed * Time.fixedDeltaTime);
 
-            // Spawna rastros de luz ao longo do dash
-            if (dashTrailPrefab != null && elapsed >= nextTrailTime)
+            // Spawna ghost na posição atual do player
+            if (dashGhostPrefab != null && elapsed >= nextGhostTime)
             {
-                GameObject trail = Instantiate(dashTrailPrefab, transform.position, Quaternion.identity);
-                Destroy(trail, trailLifetime);
-                nextTrailTime += trailInterval;
+                SpawnGhost();
+                nextGhostTime += ghostInterval;
             }
 
             elapsed += Time.fixedDeltaTime;
@@ -110,11 +111,25 @@ public class PlayerMove : MonoBehaviour
         isInvincible = false;
     }
 
+    void SpawnGhost()
+    {
+        if (spriteRenderer == null) return;
+
+        // Instancia o ghost na posição e rotação atuais do spriteRenderer
+        GameObject ghost = Instantiate(dashGhostPrefab, spriteRenderer.transform.position, spriteRenderer.transform.rotation);
+
+        // Copia a escala do spriteRenderer do player
+        ghost.transform.localScale = spriteRenderer.transform.lossyScale;
+
+        DashGhost dg = ghost.GetComponent<DashGhost>();
+        if (dg != null)
+            dg.Init(spriteRenderer.sprite, spriteRenderer.flipX, ghostColor, ghostLifetime);
+    }
+
     void HandleAnimation()
     {
         if (anim == null) return;
-
-        if (isDashing) return; // Animação de run já foi setada no DoDash
+        if (isDashing) return;
 
         if (moveInput.sqrMagnitude > 0.01f)
         {
