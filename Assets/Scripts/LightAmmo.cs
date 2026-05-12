@@ -1,19 +1,16 @@
 using UnityEngine;
 
-// Gerencia a luz do player como recurso único:
-// munição (tiros drenam luz), vida (sem luz = morte) e recurso coletável.
-// Controla tanto a Intensity quanto o Range da luz para tornar
-// a redução muito mais perceptível visualmente.
+// Gerencia a luz do player como recurso único.
 public class LightAmmo : MonoBehaviour
 {
     [Header("Referências")]
     public Light sphereLight;
-    public QuadAnimator playerAnim; // Para tocar a animação de hit ao tomar dano
+    public QuadAnimator playerAnim;
 
     [Header("Intensidade")]
     public float maxIntensity = 750f;
-    public float drainPerShot = 15f;         // Drain padrão (tiro normal)
-    public float rechargeRate = 20f;         // Recarga por segundo
+    public float drainPerShot = 15f;
+    public float rechargeRate = 20f;
     public float deathThreshold = 2f;
 
     [Header("Range da luz")]
@@ -23,24 +20,50 @@ public class LightAmmo : MonoBehaviour
     [Header("Pickup")]
     public float pickupRestoreAmount = 100f;
 
+    // Valores base para reset ao morrer
+    [HideInInspector] public float baseMaxIntensity = 750f;
+    [HideInInspector] public float baseRechargeRate = 20f;
+    [HideInInspector] public float basePickupRestoreAmount = 100f;
+
     public static int lightBallsCollected = 0;
     [HideInInspector] public float currentIntensity;
 
     private bool isDead = false;
 
+    // Referência ao DroneFollow para detectar RMB (upgrade 4)
+    private DroneFollow droneFollow;
+
     void Start()
     {
         currentIntensity = maxIntensity;
         lightBallsCollected = 0;
+
         if (sphereLight == null)
             sphereLight = GetComponentInChildren<Light>();
+
+        droneFollow = FindFirstObjectByType<DroneFollow>();
+
+        // Salva valores base para reset
+        baseMaxIntensity = maxIntensity;
+        baseRechargeRate = rechargeRate;
+        basePickupRestoreAmount = pickupRestoreAmount;
     }
 
     void Update()
     {
         if (isDead) return;
 
-        currentIntensity += rechargeRate * Time.deltaTime;
+        // Recarga passiva base
+        float currentRecharge = rechargeRate;
+
+        // Upgrade 4: bônus de recarga quando RMB está pressionado (esfera erguida)
+        if (droneFollow != null && droneFollow.currentMode == DroneFollow.OrbMode.AreaCharge)
+        {
+            if (UpgradeManager.instance != null)
+                currentRecharge *= UpgradeManager.instance.GetPassiveRechargeBonusMultiplier();
+        }
+
+        currentIntensity += currentRecharge * Time.deltaTime;
         currentIntensity = Mathf.Clamp(currentIntensity, 0f, maxIntensity);
 
         UpdateLight();
@@ -60,29 +83,23 @@ public class LightAmmo : MonoBehaviour
         sphereLight.range = Mathf.Lerp(minRange, maxRange, proportion);
     }
 
-    // Drain com quantidade padrão (tiro normal)
     public void Drain()
     {
         currentIntensity -= drainPerShot;
     }
 
-    // Drain com quantidade específica (ataque de área, dano de inimigo)
-    // Toca a animação de hit se o playerAnim estiver atribuído
     public void Drain(float amount)
     {
         currentIntensity -= amount;
 
-        // Toca animação de hit ao tomar dano (não ao atirar)
         if (playerAnim != null)
             StartCoroutine(PlayHitAnimation());
     }
 
-    // Toca hit por um curto período e volta para idle/walk
     System.Collections.IEnumerator PlayHitAnimation()
     {
         playerAnim.PlayHit();
-        yield return new WaitForSeconds(0.4f); // Duração da animação de hit
-        // Não precisa forçar idle — o PlayerMove vai trocar automaticamente no próximo frame
+        yield return new WaitForSeconds(0.4f);
     }
 
     public void Restore(float amount)

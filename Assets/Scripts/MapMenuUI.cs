@@ -7,7 +7,7 @@ using System.Collections;
 public class MapMenuUI : MonoBehaviour
 {
     [Header("UI")]
-    public GameObject mapPanel; // Painel do menu de expedição
+    public GameObject mapPanel;
 
     [Header("Referências")]
     public MapManager mapManager;
@@ -15,12 +15,16 @@ public class MapMenuUI : MonoBehaviour
     public PlayerMove playerMove;
 
     [Header("Música de Fundo")]
-    public AudioSource bgMusic; // Volume controlado diretamente no Audio Source (Inspector)
+    public AudioSource bgMusic;
 
     void Start()
     {
         if (bgMusic != null && !bgMusic.isPlaying)
             bgMusic.Play();
+
+        // Cursor sempre visível durante o gameplay
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 
     void Update()
@@ -32,9 +36,6 @@ public class MapMenuUI : MonoBehaviour
 
             if (playerMove != null)
                 playerMove.enabled = !isOpening;
-
-            Cursor.lockState = isOpening ? CursorLockMode.None : CursorLockMode.Locked;
-            Cursor.visible = isOpening;
         }
     }
 
@@ -42,9 +43,6 @@ public class MapMenuUI : MonoBehaviour
     public void OnClickSim()
     {
         mapPanel.SetActive(false);
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-
         StartCoroutine(DoTransition());
     }
 

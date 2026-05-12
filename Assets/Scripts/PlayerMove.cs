@@ -2,38 +2,39 @@ using UnityEngine;
 using System.Collections;
 
 // Responsável pela movimentação, corrida, dash e flip do player.
-// Controles:
-// - WASD: mover
-// - Shift: correr (velocidade maior, animação de run) — requer runEnabled = true
-// - Space: dash na direção do movimento (invencível durante o dash) — requer dashEnabled = true
 public class PlayerMove : MonoBehaviour
 {
     [Header("Movimento")]
     public float walkSpeed = 5f;
-    public float runSpeed = 9f;         // Velocidade ao segurar Shift
-    public float stopDamping = 25f;     // Quanto mais alto, mais rápido para ao soltar a tecla
+    public float runSpeed = 9f;
+    public float stopDamping = 25f;
+
+    // Valores base para reset ao morrer
+    [HideInInspector] public float baseWalkSpeed = 5f;
+    [HideInInspector] public float baseRunSpeed = 9f;
 
     [Header("Dash")]
-    public bool dashEnabled = false;    // Desativado na base; ativado ao entrar na dungeon
+    public bool dashEnabled = false;
     public float dashSpeed = 18f;
     public float dashDuration = 0.15f;
     public float dashCooldown = 0.8f;
     public KeyCode dashKey = KeyCode.Space;
 
     [Header("Corrida")]
-    public bool runEnabled = false;     // Desativado na base; ativado ao entrar na dungeon
+    public bool runEnabled = false;
 
     [Header("Rastro do Dash (Ghost)")]
-    public GameObject dashGhostPrefab;  // Prefab com SpriteRenderer + DashGhost
-    public int ghostCount = 6;          // Quantidade de ghosts gerados durante o dash
-    public float ghostLifetime = 0.2f;  // Tempo que cada ghost leva para sumir
-    public Color ghostColor = new Color(1f, 1f, 1f, 0.6f); // Cor inicial do ghost
+    public GameObject dashGhostPrefab;
+    public int ghostCount = 6;
+    public float ghostLifetime = 0.2f;
+    public Color ghostColor = new Color(1f, 1f, 1f, 0.6f);
 
     [Header("Referências")]
     public QuadAnimator anim;
     public SpriteRenderer spriteRenderer;
 
     [HideInInspector] public bool isInvincible = false;
+    [HideInInspector] public bool isAttacking = false;
 
     private Rigidbody rb;
     private Vector3 moveInput;
@@ -46,11 +47,15 @@ public class PlayerMove : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         if (spriteRenderer == null)
             spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+
+        // Salva valores base para reset
+        baseWalkSpeed = walkSpeed;
+        baseRunSpeed = runSpeed;
     }
 
     void Update()
     {
-        if (isDashing) return;
+        if (isDashing || isAttacking) return;
 
         dashCooldownTimer -= Time.deltaTime;
 
@@ -70,11 +75,10 @@ public class PlayerMove : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (isDashing) return;
+        if (isDashing || isAttacking) return;
 
         if (moveInput.sqrMagnitude > 0.01f)
         {
-            // Corrida só ocorre se runEnabled estiver ativo
             float currentSpeed = (runEnabled && Input.GetKey(KeyCode.LeftShift)) ? runSpeed : walkSpeed;
             rb.MovePosition(rb.position + moveInput.normalized * currentSpeed * Time.fixedDeltaTime);
         }

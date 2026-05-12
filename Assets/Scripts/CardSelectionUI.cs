@@ -1,25 +1,57 @@
 using UnityEngine;
 using UnityEngine.UI;
-using System.Collections;
+using TMPro;
 
 // Exibe 3 cartas de upgrade quando todos os inimigos da fase são eliminados.
-// As cartas são em branco por enquanto — prontas para receber nome e efeito futuramente.
-// Chamado pelo MapManager quando allEnemiesDead se torna true.
+// Sorteia upgrades aleatórios do UpgradeManager e exibe o nome em cada carta.
 public class CardSelectionUI : MonoBehaviour
 {
     [Header("UI")]
-    public GameObject cardPanel;        // Painel que contém as 3 cartas
-    public Button[] cardButtons;        // Array com os 3 botões de carta
-    public PlayerMove playerMove;       // Referência para travar o player durante a seleção
+    public GameObject cardPanel;
+    public Button[] cardButtons;            // Array com os 3 botões de carta
+    public TextMeshProUGUI[] cardTexts;     // Array com os 3 textos de nome do upgrade
 
-    // Chamado pelo MapManager ao detectar que todos os inimigos morreram
+    [Header("Referências")]
+    public PlayerMove playerMove;
+
+    private int[] currentOptions = new int[3]; // Índices dos upgrades sorteados
+
+    void Update()
+    {
+        // Debug: pressione Y para abrir a seleção de cartas a qualquer momento
+#if UNITY_EDITOR
+        if (Input.GetKeyDown(KeyCode.Y))
+            ShowCards();
+#endif
+    }
+
     public void ShowCards()
     {
         if (cardPanel == null) return;
 
-        // Trava o movimento do player
         if (playerMove != null)
             playerMove.enabled = false;
+
+        // Sorteia 3 upgrades
+        if (UpgradeManager.instance != null)
+        {
+            currentOptions = UpgradeManager.instance.GetRandomUpgradeOptions();
+
+            // Atualiza o texto de cada carta
+            for (int i = 0; i < cardButtons.Length; i++)
+            {
+                if (i < currentOptions.Length)
+                {
+                    cardButtons[i].gameObject.SetActive(true);
+                    if (cardTexts != null && i < cardTexts.Length && cardTexts[i] != null)
+                        cardTexts[i].text = UpgradeManager.upgradeNames[currentOptions[i]];
+                }
+                else
+                {
+                    cardButtons[i].gameObject.SetActive(false);
+                }
+            }
+        }
 
         cardPanel.SetActive(true);
 
@@ -27,19 +59,18 @@ public class CardSelectionUI : MonoBehaviour
         Cursor.visible = true;
     }
 
-    // Chamado por cada botão de carta ao ser clicado
+    // Chamado por cada botão de carta — o índice (0, 1 ou 2) indica qual carta foi clicada
     public void OnCardSelected(int cardIndex)
     {
-        // TODO: aplicar o efeito do upgrade correspondente ao cardIndex
-        Debug.Log("Carta selecionada: " + cardIndex);
+        if (UpgradeManager.instance != null && cardIndex < currentOptions.Length)
+            UpgradeManager.instance.ApplyUpgrade(currentOptions[cardIndex]);
 
         cardPanel.SetActive(false);
 
-        // Destrava o movimento do player
         if (playerMove != null)
             playerMove.enabled = true;
 
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 }

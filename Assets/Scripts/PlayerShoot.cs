@@ -1,9 +1,7 @@
 using UnityEngine;
 using System.Collections;
 
-// Gerencia os dois modos de ataque do player:
-// - Tiro normal (LMB): atira projéteis na direção do mouse
-// - Ataque de área (RMB segurado + LMB): pulsa luz e causa dano em área ao redor do player
+// Gerencia os dois modos de ataque do player.
 public class PlayerShoot : MonoBehaviour
 {
     [Header("Referências")]
@@ -20,6 +18,7 @@ public class PlayerShoot : MonoBehaviour
     [Header("Tiro Normal")]
     public float fireRate = 0.3f;
     public float normalDrainAmount = 15f;
+    public bool pierceEnabled = false; // Upgrade 5: disparos atravessam inimigos
 
     [Header("Ataque de Área")]
     public float areaRadius = 5f;
@@ -27,18 +26,19 @@ public class PlayerShoot : MonoBehaviour
     public float areaDrainAmount = 80f;
     public float areaCooldown = 1.5f;
     public float areaFlashDuration = 0.2f;
-    public GameObject areaAttackEffectPrefab; // Prefab do efeito visual do ataque de área
+    public GameObject areaAttackEffectPrefab;
+
+    // Valores base para reset ao morrer
+    [HideInInspector] public float baseFireRate = 0.3f;
+    [HideInInspector] public float baseAreaDrainAmount = 80f;
 
     private float fireTimer = 0f;
     private float areaTimer = 0f;
-    private DroneFollow droneFollow;
     private LightAmmo lightAmmo;
     private Light orbLight;
 
     void Start()
     {
-        droneFollow = shootPoint.GetComponent<DroneFollow>();
-
         lightAmmo = shootPoint.GetComponent<LightAmmo>();
         if (lightAmmo == null)
             lightAmmo = FindFirstObjectByType<LightAmmo>();
@@ -46,6 +46,10 @@ public class PlayerShoot : MonoBehaviour
         orbLight = shootPoint.GetComponentInChildren<Light>();
         if (orbLight == null)
             orbLight = FindFirstObjectByType<Light>();
+
+        // Salva valores base para reset
+        baseFireRate = fireRate;
+        baseAreaDrainAmount = areaDrainAmount;
     }
 
     void Update()
@@ -53,14 +57,12 @@ public class PlayerShoot : MonoBehaviour
         fireTimer -= Time.deltaTime;
         areaTimer -= Time.deltaTime;
 
-        // Tiro normal — LMB sem RMB
         if (Input.GetMouseButton(0) && !Input.GetMouseButton(1) && fireTimer <= 0f)
         {
             Shoot();
             fireTimer = fireRate;
         }
 
-        // Ataque de área — RMB segurado + LMB pressionado
         if (Input.GetMouseButton(1) && Input.GetMouseButtonDown(0) && areaTimer <= 0f)
         {
             StartCoroutine(AreaAttack());
@@ -89,7 +91,11 @@ public class PlayerShoot : MonoBehaviour
 
         GameObject bullet = Instantiate(bulletPrefab, shootPoint.position, Quaternion.identity);
         BulletProjectile bp = bullet.GetComponent<BulletProjectile>();
-        if (bp != null) bp.SetDirection(direction);
+        if (bp != null)
+        {
+            bp.SetDirection(direction);
+            bp.pierceEnabled = pierceEnabled;
+        }
 
         if (lightAmmo != null) lightAmmo.Drain(normalDrainAmount);
     }
@@ -101,7 +107,6 @@ public class PlayerShoot : MonoBehaviour
 
         if (lightAmmo != null) lightAmmo.Drain(areaDrainAmount);
 
-        // Instancia o efeito visual na posição do player, na altura da cintura
         if (areaAttackEffectPrefab != null)
         {
             Vector3 effectPos = new Vector3(transform.position.x, transform.position.y + 0.1f, transform.position.z);
@@ -110,7 +115,6 @@ public class PlayerShoot : MonoBehaviour
             if (aae != null) aae.Init(areaRadius, playerMove);
         }
 
-        // Flash visual na luz
         float originalRange = orbLight != null ? orbLight.range : 0f;
         float originalIntensity = orbLight != null ? orbLight.intensity : 0f;
 
@@ -120,7 +124,6 @@ public class PlayerShoot : MonoBehaviour
             orbLight.intensity = originalIntensity * 2f;
         }
 
-        // Detecta e mata inimigos em área
         Collider[] hits = Physics.OverlapSphere(transform.position, areaRadius);
         foreach (Collider hit in hits)
         {

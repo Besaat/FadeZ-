@@ -4,12 +4,16 @@ using UnityEngine;
 // Instanciado pelo PlayerShoot no momento do ataque de área.
 // A animação toca uma vez e o objeto se destrói ao terminar.
 // O sprite é rotacionado para ficar deitado (visão isométrica).
-// O movimento do player fica travado durante a animação.
+// O movimento do player fica travado durante a animação via isAttacking.
 public class AreaAttackEffect : MonoBehaviour
 {
     [Header("Spritesheet")]
-    public Sprite[] frames;         // Arraste os frames fatiados da spritesheet aqui
-    public float fps = 12f;         // Velocidade da animação
+    public Sprite[] frames;
+    public float fps = 12f;
+
+    [Header("Halo de luz")]
+    public float lightIntensity = 300f;
+    public Color lightColor = new Color(1f, 0.9f, 0.5f, 1f);
 
     private SpriteRenderer sr;
     private int currentFrame = 0;
@@ -17,20 +21,30 @@ public class AreaAttackEffect : MonoBehaviour
     private bool finished = false;
     private PlayerMove playerMove;
 
-    // Chamado pelo PlayerShoot após instanciar, passando o raio da área e o PlayerMove
     public void Init(float areaRadius, PlayerMove pm)
     {
-        // Rotaciona para ficar deitado na visão isométrica
         transform.rotation = Quaternion.Euler(90f, 0f, 0f);
 
-        // Ajusta a escala para cobrir o diâmetro do ataque de área com o dobro do tamanho
         float size = areaRadius * 4f;
         transform.localScale = new Vector3(size, size, size);
 
-        // Trava o movimento do player durante a animação
+        // Trava o movimento via booleano — não desativa o componente
         playerMove = pm;
         if (playerMove != null)
-            playerMove.enabled = false;
+            playerMove.isAttacking = true;
+
+        // Cria o halo de luz na posição do efeito
+        GameObject lightObj = new GameObject("AreaHalo");
+        lightObj.transform.SetParent(transform);
+        lightObj.transform.localPosition = Vector3.zero;
+        lightObj.transform.localRotation = Quaternion.identity;
+        lightObj.transform.localScale = Vector3.one;
+
+        Light halo = lightObj.AddComponent<Light>();
+        halo.type = LightType.Point;
+        halo.color = lightColor;
+        halo.intensity = lightIntensity;
+        halo.range = areaRadius * 3f;
     }
 
     void Awake()
@@ -38,7 +52,6 @@ public class AreaAttackEffect : MonoBehaviour
         sr = GetComponent<SpriteRenderer>();
         if (sr == null) sr = gameObject.AddComponent<SpriteRenderer>();
 
-        // Define a opacidade do efeito em 40%
         sr.color = new Color(1f, 1f, 1f, 0.4f);
 
         if (frames != null && frames.Length > 0)
@@ -59,11 +72,8 @@ public class AreaAttackEffect : MonoBehaviour
             if (currentFrame >= frames.Length)
             {
                 finished = true;
-
-                // Destrava o movimento do player ao terminar a animação
                 if (playerMove != null)
-                    playerMove.enabled = true;
-
+                    playerMove.isAttacking = false;
                 Destroy(gameObject);
                 return;
             }
@@ -71,4 +81,12 @@ public class AreaAttackEffect : MonoBehaviour
             sr.sprite = frames[currentFrame];
         }
     }
+
+    void OnDestroy()
+    {
+        // Garante que o movimento seja destravado mesmo se destruído externamente
+        if (playerMove != null)
+            playerMove.isAttacking = false;
+    }
 }
+

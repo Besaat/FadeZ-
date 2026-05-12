@@ -1,18 +1,16 @@
 using UnityEngine;
 
 // Projétil disparado pelo player.
-// Move em linha reta na direção definida pelo PlayerShoot.
-// Destrói a si mesmo ao atingir um inimigo ou após o tempo de vida expirar.
 public class BulletProjectile : MonoBehaviour
 {
     [Header("Configuração")]
-    public float speed = 20f;     // Velocidade do projétil
-    public float lifetime = 3f;   // Tempo em segundos até se auto-destruir
+    public float speed = 20f;
+    public float lifetime = 3f;
+    public bool pierceEnabled = false; // Upgrade 5: atravessa inimigos
 
-    private Vector3 direction;    // Direção normalizada do movimento
-    private bool isReady = false; // Só se move após SetDirection ser chamado
+    private Vector3 direction;
+    private bool isReady = false;
 
-    // Chamado pelo PlayerShoot logo após instanciar o projétil
     public void SetDirection(Vector3 dir)
     {
         direction = dir.normalized;
@@ -21,7 +19,6 @@ public class BulletProjectile : MonoBehaviour
 
     void Start()
     {
-        // Garante destruição automática mesmo se não atingir nada
         Destroy(gameObject, lifetime);
     }
 
@@ -33,7 +30,6 @@ public class BulletProjectile : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        // Ignora colisão com o próprio player e com o orbe (Sphere)
         if (other.CompareTag("Player") || other.gameObject.name == "Sphere") return;
 
         if (other.CompareTag("Enemy"))
@@ -41,12 +37,13 @@ public class BulletProjectile : MonoBehaviour
             EnemyCapsuleAI enemy = other.GetComponent<EnemyCapsuleAI>();
             if (enemy != null) enemy.Die();
 
-            Destroy(gameObject);
+            // Se pierce não está ativo, destrói o projétil ao atingir inimigo
+            if (!pierceEnabled)
+                Destroy(gameObject);
         }
         else
         {
-            // Destrói ao bater em qualquer outro objeto sólido (árvores, pedras etc)
-            // Comente a linha abaixo se quiser que o tiro passe por obstáculos
+            // Destrói ao bater em obstáculos independente do pierce
             Destroy(gameObject);
         }
     }
