@@ -10,6 +10,7 @@ public class PlayerShoot : MonoBehaviour
     public Transform shootPoint;
     public GameObject bulletPrefab;
     public Camera cam;
+    public PlayerMove playerMove;
 
     [Header("Áudio")]
     public AudioSource audioSource;
@@ -25,7 +26,8 @@ public class PlayerShoot : MonoBehaviour
     public float areaDamage = 300f;
     public float areaDrainAmount = 80f;
     public float areaCooldown = 1.5f;
-    public float areaFlashDuration = 0.2f; // Duração do flash visual
+    public float areaFlashDuration = 0.2f;
+    public GameObject areaAttackEffectPrefab; // Prefab do efeito visual do ataque de área
 
     private float fireTimer = 0f;
     private float areaTimer = 0f;
@@ -37,7 +39,6 @@ public class PlayerShoot : MonoBehaviour
     {
         droneFollow = shootPoint.GetComponent<DroneFollow>();
 
-        // Busca o LightAmmo no shootPoint primeiro, se não encontrar busca na cena toda
         lightAmmo = shootPoint.GetComponent<LightAmmo>();
         if (lightAmmo == null)
             lightAmmo = FindFirstObjectByType<LightAmmo>();
@@ -98,10 +99,18 @@ public class PlayerShoot : MonoBehaviour
         if (audioSource != null && areaAttackSound != null)
             audioSource.PlayOneShot(areaAttackSound);
 
-        // Consome luz
         if (lightAmmo != null) lightAmmo.Drain(areaDrainAmount);
 
-        // Flash visual: expande o range da luz abruptamente
+        // Instancia o efeito visual na posição do player, na altura da cintura
+        if (areaAttackEffectPrefab != null)
+        {
+            Vector3 effectPos = new Vector3(transform.position.x, transform.position.y + 0.1f, transform.position.z);
+            GameObject effect = Instantiate(areaAttackEffectPrefab, effectPos, Quaternion.identity);
+            AreaAttackEffect aae = effect.GetComponent<AreaAttackEffect>();
+            if (aae != null) aae.Init(areaRadius, playerMove);
+        }
+
+        // Flash visual na luz
         float originalRange = orbLight != null ? orbLight.range : 0f;
         float originalIntensity = orbLight != null ? orbLight.intensity : 0f;
 
@@ -111,20 +120,17 @@ public class PlayerShoot : MonoBehaviour
             orbLight.intensity = originalIntensity * 2f;
         }
 
-        // Detecta inimigos por tag — não depende de layer configurada
+        // Detecta e mata inimigos em área
         Collider[] hits = Physics.OverlapSphere(transform.position, areaRadius);
         foreach (Collider hit in hits)
         {
-            // Busca o EnemyCapsuleAI no objeto ou nos filhos
             EnemyCapsuleAI enemy = hit.GetComponent<EnemyCapsuleAI>();
             if (enemy == null) enemy = hit.GetComponentInParent<EnemyCapsuleAI>();
             if (enemy != null) enemy.Die();
         }
 
-        // Mantém o flash por um curto período
         yield return new WaitForSeconds(areaFlashDuration);
 
-        // Restaura a luz gradualmente
         if (orbLight != null)
         {
             orbLight.range = originalRange;
@@ -132,7 +138,6 @@ public class PlayerShoot : MonoBehaviour
         }
     }
 
-    // Mostra o raio do ataque de área na Scene View
     void OnDrawGizmosSelected()
     {
         Gizmos.color = new Color(1f, 1f, 0f, 0.25f);

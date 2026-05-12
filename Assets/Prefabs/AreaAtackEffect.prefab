@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3422766902387143856
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8925292502431773666}
+  - component: {fileID: 912727958361917039}
+  m_Layer: 0
+  m_Name: AreaAtackEffect
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8925292502431773666
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3422766902387143856}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -125.28106, y: -4.3900404, z: -11.957615}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &912727958361917039
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3422766902387143856}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a74a92d1eb5bfd04f891b5ae88ce2c78, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  frames:
+  - {fileID: 1559384093, guid: 58bdf830244534c4d8fcb1b1aa4efc80, type: 3}
+  - {fileID: 1229534215, guid: 58bdf830244534c4d8fcb1b1aa4efc80, type: 3}
+  - {fileID: 77247209, guid: 58bdf830244534c4d8fcb1b1aa4efc80, type: 3}
+  - {fileID: -2054895699, guid: 58bdf830244534c4d8fcb1b1aa4efc80, type: 3}
+  - {fileID: -1828561206, guid: 58bdf830244534c4d8fcb1b1aa4efc80, type: 3}
+  - {fileID: -2019558877, guid: 58bdf830244534c4d8fcb1b1aa4efc80, type: 3}
+  - {fileID: -24695316, guid: 58bdf830244534c4d8fcb1b1aa4efc80, type: 3}
+  - {fileID: 314154498, guid: 58bdf830244534c4d8fcb1b1aa4efc80, type: 3}
+  - {fileID: 749951965, guid: 58bdf830244534c4d8fcb1b1aa4efc80, type: 3}
+  fps: 12
+  effectScale: 3

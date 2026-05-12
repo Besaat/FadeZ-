@@ -58,6 +58,10 @@ public class MapManager : MonoBehaviour
 
     public bool allEnemiesDead { get; private set; } = false;
 
+    // Contadores da HUD
+    public int currentFloor { get; private set; } = 0;
+    public int totalKills { get; private set; } = 0;
+
     private int totalEnemiesSpawned = 0;
     private int enemiesDead = 0;
     private bool wavesFinished = false;
@@ -74,6 +78,9 @@ public class MapManager : MonoBehaviour
         totalEnemiesSpawned = 0;
         enemiesDead = 0;
         wavesFinished = false;
+
+        // Incrementa o contador de fases a cada novo mapa gerado
+        currentFloor++;
 
         ClearMap();
 
@@ -112,7 +119,7 @@ public class MapManager : MonoBehaviour
     public void OnEnemyDied()
     {
         enemiesDead++;
-        Debug.Log("OnEnemyDied — mortos: " + enemiesDead + " / spawned: " + totalEnemiesSpawned + " | wavesFinished: " + wavesFinished);
+        totalKills++; // Contador global de abates
 
         if (wavesFinished && enemiesDead >= totalEnemiesSpawned)
             OnAllEnemiesDead();
@@ -121,7 +128,6 @@ public class MapManager : MonoBehaviour
     void OnAllEnemiesDead()
     {
         allEnemiesDead = true;
-        Debug.Log("OnAllEnemiesDead chamado — cardSelectionUI: " + (cardSelectionUI != null));
 
         if (cardSelectionUI != null)
             cardSelectionUI.ShowCards();
@@ -253,7 +259,6 @@ public class MapManager : MonoBehaviour
         }
 
         wavesFinished = true;
-        Debug.Log("Waves finalizadas — total spawned: " + totalEnemiesSpawned + " | mortos: " + enemiesDead);
 
         if (enemiesDead >= totalEnemiesSpawned && totalEnemiesSpawned > 0)
             OnAllEnemiesDead();

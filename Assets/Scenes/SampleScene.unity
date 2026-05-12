@@ -1566,6 +1566,7 @@ MonoBehaviour:
   shootPoint: {fileID: 421428323}
   bulletPrefab: {fileID: 4680787416294095633, guid: a76d153c4380c8d40b7aec6974622f7e, type: 3}
   cam: {fileID: 330585545}
+  playerMove: {fileID: 215354426}
   audioSource: {fileID: 2130245459}
   shootSound: {fileID: 8300000, guid: 2f4bbceecc269f7409e3293571aafbe1, type: 3}
   areaAttackSound: {fileID: 0}
@@ -1576,6 +1577,7 @@ MonoBehaviour:
   areaDrainAmount: 7000
   areaCooldown: 1.5
   areaFlashDuration: 0.2
+  areaAttackEffectPrefab: {fileID: 3422766902387143856, guid: 04be7cf891fa9c940b4ce1f5e568d10c, type: 3}
 --- !u!1 &242842506
 GameObject:
   m_ObjectHideFlags: 0
